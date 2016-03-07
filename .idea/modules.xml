@@ -2,6 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
+      <module fileurl="file://$PROJECT_DIR$/LoggingClientJavaCore/LoggingClientJavaCore.iml" filepath="$PROJECT_DIR$/LoggingClientJavaCore/LoggingClientJavaCore.iml" />
       <module fileurl="file://$PROJECT_DIR$/automate-LoggingClientAndroidExtension.iml" filepath="$PROJECT_DIR$/automate-LoggingClientAndroidExtension.iml" />
       <module fileurl="file://$PROJECT_DIR$/lib/lib.iml" filepath="$PROJECT_DIR$/lib/lib.iml" />
     </modules>
