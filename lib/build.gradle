@@ -49,7 +49,7 @@ publishing {
             artifactId 'loggingclient.androidextension'
             version '1.0.0-SNAPSHOT'
 
-            artifact('${project.buildDir}/outputs/aar/${project.name}-release.aar')
+            artifact("${project.buildDir}/outputs/aar/${project.name}-release.aar")
         }
     }
 }
