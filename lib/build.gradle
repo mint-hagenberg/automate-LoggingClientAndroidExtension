@@ -26,13 +26,30 @@ android {
         exclude 'META-INF/NOTICE.txt'
         exclude 'META-INF/LICENSE'
         exclude 'META-INF/NOTICE'
+        exclude 'META-INF/DEPENDENCIES'
     }
 }
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'at.fhhagenberg.mint.automate:loggingclient.javacore:1.0.0-SNAPSHOT'
     compile 'org.apache.thrift:libthrift:0.9.3'
-    compile 'log4j:log4j:1.2.17'
-    compile 'org.slf4j:slf4j-api:1.7.10'
-    compile project(':LoggingClientJavaCore')
+    compile 'org.apache.logging.log4j:log4j-core:2.5'
+    compile 'org.slf4j:slf4j-android:1.7.19'
+    compile 'com.android.support:appcompat-v7:23.2.1'
+    compile 'com.android.support:recyclerview-v7:23.2.1'
+}
+
+apply plugin: 'maven-publish'
+
+publishing {
+    publications {
+        maven(MavenPublication) {
+            groupId 'at.fhhagenberg.mint.automate'
+            artifactId 'loggingclient.androidextension'
+            version '1.0.0-SNAPSHOT'
+
+            artifact('${project.buildDir}/outputs/aar/${project.name}-release.aar')
+        }
+    }
 }
