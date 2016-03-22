@@ -55,7 +55,6 @@ public class KernelManagerHelper {
 
 		kernel.addManager(new CredentialManager());
 		kernel.addManager(new EventManager());
-		// TODO: do we need this?! kernel.addManager(new ActivityRegistryService());
 		kernel.addManager(new NetworkCacheManager());
 		kernel.addManager(new NetworkManager());
 		kernel.addManager(new TrustedTimeManager());

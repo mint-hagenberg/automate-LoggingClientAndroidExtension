@@ -36,8 +36,6 @@ dependencies {
     compile 'org.apache.thrift:libthrift:0.9.3'
     compile 'org.apache.logging.log4j:log4j-core:2.5'
     compile 'org.slf4j:slf4j-android:1.7.19'
-    compile 'com.android.support:appcompat-v7:23.2.1'
-    compile 'com.android.support:recyclerview-v7:23.2.1'
 }
 
 apply plugin: 'maven-publish'
