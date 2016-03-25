@@ -79,9 +79,9 @@ public abstract class FileExportManager extends AbstractManager implements Event
 		getKernel().addListener(this);
 
 		Context context = ((AndroidKernel) getKernel()).getContext();
-		mStoreFilesExternal = PropertiesHelper.getProperty(context, "filexport.storeexternal", Boolean.class, false);
+		mStoreFilesExternal = PropertiesHelper.getProperty(context, "fileexport.storeexternal", Boolean.class, false);
 
-		String serviceHandlerProperty = PropertiesHelper.getProperty(context, "filexport.handler");
+		String serviceHandlerProperty = PropertiesHelper.getProperty(context, "fileexport.handler");
 		String[] serviceHandlers = serviceHandlerProperty != null && !serviceHandlerProperty.isEmpty() ? serviceHandlerProperty.split(",") : null;
 		if (serviceHandlers != null && serviceHandlers.length > 0) {
 			for (String handlerName : serviceHandlers) {
@@ -150,8 +150,11 @@ public abstract class FileExportManager extends AbstractManager implements Event
 					Context context = ((AndroidKernel) getKernel()).getContext();
 					FileOutputStream outputStream;
 					if (mStoreFilesExternal) {
-						outputStream = new FileOutputStream(new File(context.getExternalFilesDir(null), filename));
+						File file = new File(context.getExternalFilesDir(null), filename);
+						getLogger().logDebug(getLoggingSource(), "writing to external " + file);
+						outputStream = new FileOutputStream(file, true);
 					} else {
+						getLogger().logDebug(getLoggingSource(), "writing to internal " + filename);
 						outputStream = context.openFileOutput(filename, Context.MODE_APPEND);
 					}
 					mOpenFileStreams.put(eventTypeId, outputStream);
