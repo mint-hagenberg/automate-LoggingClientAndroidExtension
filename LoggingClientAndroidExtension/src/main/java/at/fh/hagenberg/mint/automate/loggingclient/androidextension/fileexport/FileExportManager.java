@@ -20,6 +20,7 @@ package at.fh.hagenberg.mint.automate.loggingclient.androidextension.fileexport;
 import android.content.Context;
 import android.content.pm.PackageInfo;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -54,6 +55,8 @@ public abstract class FileExportManager extends AbstractManager implements Event
 	private final List<FileExportHandler> mFileExportHandlers = new ArrayList<>();
 	private final Map<Id, FileExportHandler> mTransmissionEventToHandlerMap = new HashMap<>();
 
+	private boolean mStoreFilesExternal = false;
+
 	private CredentialManager mCredentialManager;
 
 	protected String mProjectId;
@@ -76,6 +79,8 @@ public abstract class FileExportManager extends AbstractManager implements Event
 		getKernel().addListener(this);
 
 		Context context = ((AndroidKernel) getKernel()).getContext();
+		mStoreFilesExternal = PropertiesHelper.getProperty(context, "filexport.storeexternal", Boolean.class, false);
+
 		String serviceHandlerProperty = PropertiesHelper.getProperty(context, "filexport.handler");
 		String[] serviceHandlers = serviceHandlerProperty != null && !serviceHandlerProperty.isEmpty() ? serviceHandlerProperty.split(",") : null;
 		if (serviceHandlers != null && serviceHandlers.length > 0) {
@@ -142,7 +147,13 @@ public abstract class FileExportManager extends AbstractManager implements Event
 			if (!mOpenFileStreams.containsKey(eventTypeId)) {
 				String filename = exportHandler.getFilename(eventTypeId);
 				try {
-					FileOutputStream outputStream = ((AndroidKernel) getKernel()).getContext().openFileOutput(filename, Context.MODE_APPEND);
+					Context context = ((AndroidKernel) getKernel()).getContext();
+					FileOutputStream outputStream;
+					if (mStoreFilesExternal) {
+						outputStream = new FileOutputStream(new File(context.getExternalFilesDir(null), filename));
+					} else {
+						outputStream = context.openFileOutput(filename, Context.MODE_APPEND);
+					}
 					mOpenFileStreams.put(eventTypeId, outputStream);
 				} catch (FileNotFoundException ex) {
 					getLogger().logCritical(getLoggingSource(), ex);
