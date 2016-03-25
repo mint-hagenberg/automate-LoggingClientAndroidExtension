@@ -25,8 +25,8 @@ import at.fh.hagenberg.mint.automate.loggingclient.androidextension.util.Propert
  * Helper for network stuff.
  */
 public final class NetworkHelper {
-	private static final String IP_STRING = "serverip";
-	private static final String PORT_STRING = "serverport";
+	private static final String IP_STRING = "network.server.ip";
+	private static final String PORT_STRING = "network.server.port";
 
 	/**
 	 * Get the server ip address.
