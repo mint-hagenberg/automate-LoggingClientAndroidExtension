@@ -15,7 +15,7 @@
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package at.fh.hagenberg.mint.automate.loggingclient.androidextension.export;
+package at.fh.hagenberg.mint.automate.loggingclient.androidextension.fileexport;
 
 import android.content.Context;
 import android.content.pm.PackageInfo;
@@ -56,12 +56,11 @@ public abstract class FileExportManager extends AbstractManager implements Event
 
 	private CredentialManager mCredentialManager;
 
-	private String mProjectId;
-	private String mDeviceId;
-	private UUID mSessionId;
-	// TODO: check is we even need this
-	private int mSequenceNr;
-	private String mAppVersion;
+	protected String mProjectId;
+	protected String mDeviceId;
+	protected UUID mSessionId;
+	protected int mSequenceNr;
+	protected String mAppVersion;
 
 	private Map<Id, FileOutputStream> mOpenFileStreams = new HashMap<>();
 

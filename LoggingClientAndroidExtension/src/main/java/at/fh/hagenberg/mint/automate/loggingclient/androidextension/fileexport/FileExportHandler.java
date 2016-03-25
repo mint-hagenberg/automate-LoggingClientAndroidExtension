@@ -15,7 +15,7 @@
  *     along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package at.fh.hagenberg.mint.automate.loggingclient.androidextension.export;
+package at.fh.hagenberg.mint.automate.loggingclient.androidextension.fileexport;
 
 import java.util.List;
 
