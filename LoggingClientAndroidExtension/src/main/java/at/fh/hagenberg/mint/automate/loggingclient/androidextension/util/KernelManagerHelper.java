@@ -24,6 +24,7 @@ import java.io.IOException;
 
 import at.fh.hagenberg.mint.automate.loggingclient.androidextension.debuglogging.ConsoleLogger;
 import at.fh.hagenberg.mint.automate.loggingclient.androidextension.debuglogging.FileLogger;
+import at.fh.hagenberg.mint.automate.loggingclient.androidextension.fileexport.impl.CSVFileExportManager;
 import at.fh.hagenberg.mint.automate.loggingclient.androidextension.kernel.AndroidKernel;
 import at.fh.hagenberg.mint.automate.loggingclient.androidextension.network.NetworkManager;
 import at.fh.hagenberg.mint.automate.loggingclient.androidextension.network.cache.NetworkCacheManager;
@@ -55,8 +56,15 @@ public class KernelManagerHelper {
 
 		kernel.addManager(new CredentialManager());
 		kernel.addManager(new EventManager());
-		kernel.addManager(new NetworkCacheManager());
-		kernel.addManager(new NetworkManager());
+		boolean networkEnabled = PropertiesHelper.getProperty(context, "network.enabled", Boolean.class, false);
+		if (networkEnabled) {
+			kernel.addManager(new NetworkCacheManager());
+			kernel.addManager(new NetworkManager());
+		}
+		boolean fileExportEnabled = PropertiesHelper.getProperty(context, "fileexport.enabled", Boolean.class, false);
+		if (fileExportEnabled) {
+			kernel.addManager(new CSVFileExportManager());
+		}
 		kernel.addManager(new TrustedTimeManager());
 
 
