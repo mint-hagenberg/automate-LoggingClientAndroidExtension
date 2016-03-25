@@ -19,7 +19,6 @@ package at.fh.hagenberg.mint.automate.loggingclient.androidextension.network;
 
 import android.content.Context;
 import android.content.pm.PackageInfo;
-import android.util.Log;
 
 import java.io.Serializable;
 import java.util.ArrayList;
@@ -33,7 +32,6 @@ import at.fh.hagenberg.mint.automate.loggingclient.androidextension.network.cach
 import at.fh.hagenberg.mint.automate.loggingclient.androidextension.network.cache.event.CachedPacketEvent;
 import at.fh.hagenberg.mint.automate.loggingclient.androidextension.network.packet.GenericPacket;
 import at.fh.hagenberg.mint.automate.loggingclient.androidextension.network.packet.PacketSender;
-import at.fh.hagenberg.mint.automate.loggingclient.androidextension.network.thrift.ThriftHelper;
 import at.fh.hagenberg.mint.automate.loggingclient.androidextension.network.thrift.ThriftPacketSender;
 import at.fh.hagenberg.mint.automate.loggingclient.androidextension.userid.CredentialManager;
 import at.fh.hagenberg.mint.automate.loggingclient.androidextension.util.PropertiesHelper;
@@ -84,7 +82,7 @@ public class NetworkManager extends AbstractManager implements EventListener, Ke
 		getKernel().addListener(this);
 
 		Context context = ((AndroidKernel) getKernel()).getContext();
-		String serviceHandlerProperty = PropertiesHelper.getProperty(context, "manager.handler");
+		String serviceHandlerProperty = PropertiesHelper.getProperty(context, "network.handler");
 		String[] serviceHandlers = serviceHandlerProperty != null && !serviceHandlerProperty.isEmpty() ? serviceHandlerProperty.split(",") : null;
 		if (serviceHandlers != null && serviceHandlers.length > 0) {
 			for (String handlerName : serviceHandlers) {
@@ -109,8 +107,7 @@ public class NetworkManager extends AbstractManager implements EventListener, Ke
 		mProjectId = mCredentialManager.getProjectId();
 		PackageInfo pInfo;
 		try {
-			pInfo = context.getPackageManager()
-					.getPackageInfo(context.getPackageName(), 0);
+			pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
 			mAppVersion = String.valueOf(pInfo.versionCode);
 		} catch (Exception e) {
 			mAppVersion = "UNDEFINED";
@@ -146,9 +143,8 @@ public class NetworkManager extends AbstractManager implements EventListener, Ke
 				mSender.sendSerializedPacket(s);
 			}
 		} else if (mRegisteredTransmissionEvents.contains(event.getTypeId())) {
-			Log.i(ThriftHelper.class.getSimpleName(), "Contained : " + event.getTypeId());
-			getLogger()
-					.logWarning(getLoggingSource(), "Preparing " + event.getClass().getSimpleName() + " to send");
+			getLogger().logInfo(getLoggingSource(), "Contained : " + event.getTypeId());
+			getLogger().logWarning(getLoggingSource(), "Preparing " + event.getClass().getSimpleName() + " to send");
 			GenericPacket p = new GenericPacket(mDeviceId, mSessionId, mSequenceNr, mProjectId, mAppVersion, event);
 			mSender.sendPacket(p);
 			++mSequenceNr;
