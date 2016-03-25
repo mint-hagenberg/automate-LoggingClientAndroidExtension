@@ -95,10 +95,25 @@ public final class PropertiesHelper {
 			return (T) Float.valueOf(propertyString);
 		} else if (type == Long.class) {
 			return (T) Long.valueOf(propertyString);
+		} else if (type == Boolean.class) {
+			return (T) Boolean.valueOf(propertyString);
 		} else if (type == String[].class) {
 			return (T) propertyString.split(",");
 		} else {
 			return null;
+		}
+	}
+
+	public static <T> T getProperty(Context context, String name, Class<T> type, T defaultValue) {
+		try {
+			T property = getProperty(context, name, type);
+			if (property == null) {
+				return defaultValue;
+			} else {
+				return property;
+			}
+		} catch (Exception e) {
+			return defaultValue;
 		}
 	}
 
