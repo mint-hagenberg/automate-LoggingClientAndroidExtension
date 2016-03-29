@@ -42,24 +42,26 @@ public class CSVFileExportManager extends FileExportManager {
 	private void writeObjects(FileWriter writer, Object[] objects) throws IOException {
 		for (int i = 0, len = objects.length; i < len; ++i) {
 			Object object = objects[i];
-			String value = object.toString();
-			boolean wrap = false;
-			if (object instanceof String) {
-				if (value.contains("\"")) {
-					wrap = true;
-					value = value.replaceAll("\"", "\"\"");
+			if (object != null) {
+				String value = object.toString();
+				boolean wrap = false;
+				if (object instanceof String) {
+					if (value.contains("\"")) {
+						wrap = true;
+						value = value.replaceAll("\"", "\"\"");
+					}
+					if (value.contains(",")) {
+						wrap = true;
+						value = value.replaceAll(",", "\\,");
+					}
 				}
-				if (value.contains(",")) {
-					wrap = true;
-					value = value.replaceAll(",", "\\,");
+				if (wrap) {
+					writer.append(WRAP_CHARACTER);
 				}
-			}
-			if (wrap) {
-				writer.append(WRAP_CHARACTER);
-			}
-			writer.append(value);
-			if (wrap) {
-				writer.append(WRAP_CHARACTER);
+				writer.append(value);
+				if (wrap) {
+					writer.append(WRAP_CHARACTER);
+				}
 			}
 			if (i + 1 < len) {
 				writer.append(FIELD_SEPARATOR);
