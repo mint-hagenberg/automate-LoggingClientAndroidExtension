@@ -42,6 +42,14 @@ public interface FileExportHandler {
 	String getFilename(Id eventId);
 
 	/**
+	 * Allows the file to have a header which is written when the file is created.
+	 *
+	 * @param id -
+	 * @return -
+	 */
+	String[] getFileHeader(Id id);
+
+	/**
 	 * Asks the handler to create an array of (primitive!) objects that will be written to the file.
 	 *
 	 * @param event -

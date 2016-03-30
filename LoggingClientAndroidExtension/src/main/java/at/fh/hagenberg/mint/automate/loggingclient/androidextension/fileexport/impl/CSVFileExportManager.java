@@ -32,14 +32,28 @@ public class CSVFileExportManager extends FileExportManager {
 	private static final char WRAP_CHARACTER = '"';
 
 	@Override
-	protected void writeToFile(FileOutputStream stream, Object[] objects) throws IOException {
+	protected void writeHeaderToFile(FileOutputStream stream, String[] headers) throws IOException {
 		FileWriter writer = new FileWriter(stream.getFD());
-		writeLineHeader(writer);
-		writeObjects(writer, objects);
+		writeFileHeader(writer);
+		writer.append(FIELD_SEPARATOR);
+		writeAllObjects(writer, headers);
 		endLine(writer);
 	}
 
-	private void writeObjects(FileWriter writer, Object[] objects) throws IOException {
+	@Override
+	protected void writeToFile(FileOutputStream stream, Object[] objects) throws IOException {
+		FileWriter writer = new FileWriter(stream.getFD());
+		writeLineHeader(writer);
+		writer.append(FIELD_SEPARATOR);
+		writeAllObjects(writer, objects);
+		endLine(writer);
+	}
+
+	private void writeObjects(FileWriter writer, Object... objects) throws IOException {
+		writeAllObjects(writer, objects);
+	}
+
+	private void writeAllObjects(FileWriter writer, Object[] objects) throws IOException {
 		for (int i = 0, len = objects.length; i < len; ++i) {
 			Object object = objects[i];
 			if (object != null) {
@@ -69,12 +83,12 @@ public class CSVFileExportManager extends FileExportManager {
 		}
 	}
 
+	private void writeFileHeader(FileWriter writer) throws IOException {
+		writeObjects(writer, "deviceId", "sessionId", "sequenceNr", "projectId", "appVersion");
+	}
+
 	private void writeLineHeader(FileWriter writer) throws IOException {
-		writer.append(mDeviceId).append(FIELD_SEPARATOR)
-				.append(mSessionId.toString()).append(FIELD_SEPARATOR)
-				.append(String.valueOf(mSequenceNr)).append(FIELD_SEPARATOR)
-				.append(mProjectId).append(FIELD_SEPARATOR)
-				.append(mAppVersion).append(FIELD_SEPARATOR);
+		writeObjects(writer, mDeviceId, mSessionId, mSequenceNr, mProjectId, mAppVersion);
 	}
 
 	private void endLine(FileWriter writer) throws IOException {

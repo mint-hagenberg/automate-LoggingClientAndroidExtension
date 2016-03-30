@@ -21,7 +21,6 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -149,16 +148,30 @@ public abstract class FileExportManager extends AbstractManager implements Event
 				try {
 					Context context = ((AndroidKernel) getKernel()).getContext();
 					FileOutputStream outputStream;
+					boolean fileCreated = false;
 					if (mStoreFilesExternal) {
-						File file = new File(context.getExternalFilesDir(null), filename);
+						File filesDir = context.getExternalFilesDir(null);
+						if (!filesDir.exists()) {
+							filesDir.mkdir();
+						}
+						File file = new File(filesDir, filename);
+						if (!file.exists() && file.createNewFile()) {
+							fileCreated = true;
+						}
 						getLogger().logDebug(getLoggingSource(), "writing to external " + file);
 						outputStream = new FileOutputStream(file, true);
 					} else {
 						getLogger().logDebug(getLoggingSource(), "writing to internal " + filename);
+						if (!internalFileExists(context, filename)) {
+							fileCreated = true;
+						}
 						outputStream = context.openFileOutput(filename, Context.MODE_APPEND);
 					}
+					if (fileCreated) {
+						writeHeaderToFile(outputStream, exportHandler.getFileHeader(eventTypeId));
+					}
 					mOpenFileStreams.put(eventTypeId, outputStream);
-				} catch (FileNotFoundException ex) {
+				} catch (Exception ex) {
 					getLogger().logCritical(getLoggingSource(), ex);
 				}
 			}
@@ -171,11 +184,23 @@ public abstract class FileExportManager extends AbstractManager implements Event
 					// TODO: we probably need some kind of cache here…
 				}
 			} else {
+				getLogger().logError(getLoggingSource(), "The output stream for " + eventTypeId + " is null");
 				// TODO: we probably need some kind of cache here…
 			}
 			++mSequenceNr;
 		}
 	}
+
+	private boolean internalFileExists(Context context, String filename) {
+		for (String name : context.fileList()) {
+			if (name.equals(filename)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	protected abstract void writeHeaderToFile(FileOutputStream stream, String[] headers) throws IOException;
 
 	protected abstract void writeToFile(FileOutputStream stream, Object[] objects) throws IOException;
 
@@ -185,6 +210,10 @@ public abstract class FileExportManager extends AbstractManager implements Event
 
 	@Override
 	public void onPrepareShutdown() {
+	}
+
+	@Override
+	public void onShutdown() {
 		for (FileOutputStream outputStream : mOpenFileStreams.values()) {
 			try {
 				outputStream.close();
@@ -192,10 +221,7 @@ public abstract class FileExportManager extends AbstractManager implements Event
 				// Ignore
 			}
 		}
-	}
-
-	@Override
-	public void onShutdown() {
+		mOpenFileStreams.clear();
 	}
 
 	@Override
