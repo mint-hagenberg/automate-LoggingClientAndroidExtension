@@ -48,8 +48,6 @@ import at.fhhagenberg.mint.automate.loggingclient.javacore.name.Id;
  * A manager that uses handlers to save data to files, based on the transmission events also used in the network manager.
  */
 public abstract class FileExportManager extends AbstractManager implements EventListener, KernelListener {
-	private static final Id ID = new Id(FileExportManager.class);
-
 	private final Set<Id> mRegisteredTransmissionEvents = new HashSet<>();
 	private final List<FileExportHandler> mFileExportHandlers = new ArrayList<>();
 	private final Map<Id, FileExportHandler> mTransmissionEventToHandlerMap = new HashMap<>();
@@ -222,10 +220,5 @@ public abstract class FileExportManager extends AbstractManager implements Event
 			}
 		}
 		mOpenFileStreams.clear();
-	}
-
-	@Override
-	public Id getId() {
-		return ID;
 	}
 }

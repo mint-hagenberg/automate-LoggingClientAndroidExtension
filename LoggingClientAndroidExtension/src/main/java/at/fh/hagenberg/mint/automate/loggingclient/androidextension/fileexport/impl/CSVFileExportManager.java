@@ -22,11 +22,14 @@ import java.io.FileWriter;
 import java.io.IOException;
 
 import at.fh.hagenberg.mint.automate.loggingclient.androidextension.fileexport.FileExportManager;
+import at.fhhagenberg.mint.automate.loggingclient.javacore.name.Id;
 
 /**
  * An implementation of the file export manager that will export the data to a CSV file.
  */
 public class CSVFileExportManager extends FileExportManager {
+	public static final Id ID = new Id(CSVFileExportManager.class);
+
 	private static final char FIELD_SEPARATOR = ',';
 	private static final char DATA_SEPARATOR = '\n';
 	private static final char WRAP_CHARACTER = '"';
@@ -94,5 +97,10 @@ public class CSVFileExportManager extends FileExportManager {
 	private void endLine(FileWriter writer) throws IOException {
 		writer.append(DATA_SEPARATOR);
 		writer.flush();
+	}
+
+	@Override
+	public Id getId() {
+		return ID;
 	}
 }
