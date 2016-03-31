@@ -24,18 +24,18 @@ import at.fhhagenberg.mint.automate.loggingclient.javacore.kernel.Kernel;
  * Helper class to set the user id.
  */
 public final class Credentials {
-	private static Kernel sKernel;
+    private static Kernel sKernel;
 
-	protected static void setup(Kernel kernel) {
-		sKernel = kernel;
-	}
+    protected static void setup(Kernel kernel) {
+        sKernel = kernel;
+    }
 
-	/**
-	 * Set the credential manager's user id.
-	 *
-	 * @param userId -
-	 */
-	public static void setUserId(String userId) {
-		AbstractManager.getInstance(sKernel, CredentialManager.class).setUserId(userId);
-	}
+    /**
+     * Set the credential manager's user id.
+     *
+     * @param userId -
+     */
+    public static void setUserId(String userId) {
+        AbstractManager.getInstance(sKernel, CredentialManager.class).setUserId(userId);
+    }
 }
