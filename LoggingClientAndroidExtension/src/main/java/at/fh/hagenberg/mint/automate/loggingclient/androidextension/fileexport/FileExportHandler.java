@@ -26,34 +26,41 @@ import at.fhhagenberg.mint.automate.loggingclient.javacore.name.Id;
  * Interface for the specific file export handlers that will convert the transmission events to data for their respective files.
  */
 public interface FileExportHandler {
-	/**
-	 * List of transmission event types the file export manager has to listen to and delegate to this handler.
-	 *
-	 * @return -
-	 */
-	List<Id> getTransmissionEvents();
+    /**
+     * List of transmission event types the file export manager has to listen to and delegate to this handler.
+     *
+     * @return -
+     */
+    List<Id> getTransmissionEvents();
 
-	/**
-	 * A filename (not a path) that the file export manager will create and manage for this event id.
-	 *
-	 * @param eventId -
-	 * @return -
-	 */
-	String getFilename(Id eventId);
+    /**
+     * Return all filenames that the manager should export in the end.
+     *
+     * @return -
+     */
+    List<String> getAllFilenames();
 
-	/**
-	 * Allows the file to have a header which is written when the file is created.
-	 *
-	 * @param id -
-	 * @return -
-	 */
-	String[] getFileHeader(Id id);
+    /**
+     * A filename (not a path) that the file export manager will create and manage for this event id.
+     *
+     * @param eventId -
+     * @return -
+     */
+    String getFilename(Id eventId);
 
-	/**
-	 * Asks the handler to create an array of (primitive!) objects that will be written to the file.
-	 *
-	 * @param event -
-	 * @return -
-	 */
-	Object[] serialize(Event event);
+    /**
+     * Allows the file to have a header which is written when the file is created.
+     *
+     * @param id -
+     * @return -
+     */
+    String[] getFileHeader(Id id);
+
+    /**
+     * Asks the handler to create an array of (primitive!) objects that will be written to the file.
+     *
+     * @param event -
+     * @return -
+     */
+    Object[] serialize(Event event);
 }
