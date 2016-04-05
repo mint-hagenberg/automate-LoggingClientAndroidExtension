@@ -24,15 +24,10 @@ import android.content.Context;
 import android.content.pm.PackageInfo;
 import android.os.AsyncTask;
 
-import org.apache.logging.log4j.core.util.FileUtils;
-import org.apache.logging.log4j.core.util.IOUtils;
-
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
-import java.io.FileReader;
-import java.io.FileWriter;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.text.SimpleDateFormat;
@@ -45,7 +40,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.Exchanger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -222,23 +216,28 @@ public abstract class FileExportManager extends AbstractManager implements Event
         }
     }
 
-    private File getFile(Context context, String filename) {
-        return getFile(context, filename, null);
+    private File getExportFile(Context context, String filename) {
+        return getExportFile(context, filename, null);
     }
 
-    private File getFile(Context context, String filename, Date date) {
+    private File getExportFile(Context context, String filename, Date date) {
+        File parent = getExportParentDir(context, date);
+        return new File(parent, filename);
+    }
+
+    private File getExportParentDir(Context context, Date date) {
         File parent;
         if (mStoreFilesExternal) {
             parent = context.getExternalFilesDir(null);
         } else {
             parent = context.getFilesDir();
         }
-        parent = new File(parent, File.pathSeparator + EXPORT_DIR_BASE_NAME);
+        parent = new File(parent, File.separator + EXPORT_DIR_BASE_NAME);
         if (date != null) {
             String nowFormattedDate = DATE_FORMAT_FILE_EXPORT.format(date);
-            parent = new File(parent, File.pathSeparator + nowFormattedDate);
+            parent = new File(parent, File.separator + nowFormattedDate);
         }
-        return new File(parent, filename);
+        return parent;
     }
 
     private void startFileExport() {
@@ -272,13 +271,19 @@ public abstract class FileExportManager extends AbstractManager implements Event
                             // Ignore
                         }
                     }
+                    List<File> filesToInclude = new ArrayList<>();
+                    File parent = getExportParentDir(context, now);
+                    if (!parent.exists()) {
+                        parent.mkdirs();
+                    }
                     for (String filename : mFilenames) {
-                        File file = getFile(context, filename);
+                        File file = getExportFile(context, filename);
                         if (!file.exists()) {
                             continue;
                         }
-                        File newName = getFile(context, filename, now);
-                        file.renameTo(newName);
+                        File newName = getExportFile(context, filename, now);
+                        boolean success = file.renameTo(newName);
+                        filesToInclude.add(success ? newName : file);
                     }
 
 
@@ -291,23 +296,19 @@ public abstract class FileExportManager extends AbstractManager implements Event
 
                     byte[] dataBlock = new byte[ZIP_OUTPUT_BUFFER_SIZE];
                     ZipEntry entry;
-                    for (String filename : mFilenames) {
-                        File file = getFile(context , filename, now);
+                    for (File file : filesToInclude) {
                         if (!file.exists()) {
                             continue;
                         }
-                        if (mStoreFilesExternal) {
-                            fis = new FileInputStream(file);
-                        } else {
-                            fis = context.openFileInput(filename);
-                        }
+                        fis = new FileInputStream(file);
 
-                        entry = new ZipEntry(filename);
+                        entry = new ZipEntry(file.getName());
                         zos.putNextEntry(entry);
                         writeFileToZip(fis, zos, dataBlock);
                         fis.close();
                         zos.closeEntry();
                     }
+                    parent.delete();
                 } catch (IOException ex) {
                     getLogger().logCritical(getLoggingSource(), ex);
                     return false;
