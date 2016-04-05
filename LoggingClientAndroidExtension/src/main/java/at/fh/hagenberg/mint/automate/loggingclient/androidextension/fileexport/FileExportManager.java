@@ -38,12 +38,14 @@ import java.io.OutputStream;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.Exchanger;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipOutputStream;
 
@@ -190,7 +192,8 @@ public abstract class FileExportManager extends AbstractManager implements Event
                         outputStream = new FileOutputStream(file, true);
                     } else {
                         getLogger().logDebug(getLoggingSource(), "writing to internal " + filename);
-                        if (!internalFileExists(context, filename)) {
+                        File file = new File(context.getFilesDir(), filename);
+                        if (!file.exists()) {
                             fileCreated = true;
                         }
                         outputStream = context.openFileOutput(filename, Context.MODE_APPEND);
@@ -219,6 +222,25 @@ public abstract class FileExportManager extends AbstractManager implements Event
         }
     }
 
+    private File getFile(Context context, String filename) {
+        return getFile(context, filename, null);
+    }
+
+    private File getFile(Context context, String filename, Date date) {
+        File parent;
+        if (mStoreFilesExternal) {
+            parent = context.getExternalFilesDir(null);
+        } else {
+            parent = context.getFilesDir();
+        }
+        parent = new File(parent, File.pathSeparator + EXPORT_DIR_BASE_NAME);
+        if (date != null) {
+            String nowFormattedDate = DATE_FORMAT_FILE_EXPORT.format(date);
+            parent = new File(parent, File.pathSeparator + nowFormattedDate);
+        }
+        return new File(parent, filename);
+    }
+
     private void startFileExport() {
         new AsyncTask<Void, Integer, Boolean>() {
             private List<String> mFilenames;
@@ -238,28 +260,29 @@ public abstract class FileExportManager extends AbstractManager implements Event
                 Context context = ((AndroidKernel) getKernel()).getContext();
                 ZipOutputStream zos = null;
                 try {
-                    String nowFormattedDate = DATE_FORMAT_FILE_EXPORT.format(Calendar.getInstance().getTime());
+                    Date now = Calendar.getInstance().getTime();
 
                     FileInputStream fis;
+                    List<FileOutputStream> openStreams = new ArrayList<>(mOpenFileStreams.values());
                     mOpenFileStreams.clear();
-                    for (String filename : mFilenames) {
-                        if (mStoreFilesExternal) {
-                            File file = new File(context.getExternalFilesDir(null) + File.pathSeparator + EXPORT_DIR_BASE_NAME, filename);
-                            if (!file.exists()) {
-                                continue;
-                            }
-                            File newName = new File(context.getExternalFilesDir(null) + File.pathSeparator + EXPORT_DIR_BASE_NAME + File.pathSeparator + nowFormattedDate, filename);
-                            file.renameTo(newName);
-                        } else {
-                            if (!internalFileExists(context, filename)) {
-                                continue;
-                            }
-                            // TODO: close the open file streams and move all the files before exporting them to "clear" the data!
+                    for (OutputStream stream : openStreams) {
+                        try {
+                            stream.close();
+                        } catch (IOException ex) {
+                            // Ignore
                         }
+                    }
+                    for (String filename : mFilenames) {
+                        File file = getFile(context, filename);
+                        if (!file.exists()) {
+                            continue;
+                        }
+                        File newName = getFile(context, filename, now);
+                        file.renameTo(newName);
                     }
 
 
-                    File zipFile = new File(context.getExternalFilesDir(null), "export-" + nowFormattedDate + ".zip");
+                    File zipFile = new File(context.getExternalFilesDir(null), "export-" + DATE_FORMAT_FILE_EXPORT.format(now) + ".zip");
                     if (!zipFile.exists()) {
                         zipFile.createNewFile();
                     }
@@ -269,16 +292,13 @@ public abstract class FileExportManager extends AbstractManager implements Event
                     byte[] dataBlock = new byte[ZIP_OUTPUT_BUFFER_SIZE];
                     ZipEntry entry;
                     for (String filename : mFilenames) {
+                        File file = getFile(context , filename, now);
+                        if (!file.exists()) {
+                            continue;
+                        }
                         if (mStoreFilesExternal) {
-                            File file = new File(context.getExternalFilesDir(null) + File.pathSeparator + EXPORT_DIR_BASE_NAME, filename);
-                            if (!file.exists()) {
-                                continue;
-                            }
                             fis = new FileInputStream(file);
                         } else {
-                            if (!internalFileExists(context, filename)) {
-                                continue;
-                            }
                             fis = context.openFileInput(filename);
                         }
 
@@ -357,15 +377,6 @@ public abstract class FileExportManager extends AbstractManager implements Event
             outputStream.write(dataBlock, 0, count);
             count = inputStream.read(dataBlock, 0, ZIP_OUTPUT_BUFFER_SIZE);
         }
-    }
-
-    private boolean internalFileExists(Context context, String filename) {
-        for (String name : context.fileList()) {
-            if (name.equals(filename)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     protected abstract void writeHeaderToFile(FileOutputStream stream, String[] headers) throws IOException;
