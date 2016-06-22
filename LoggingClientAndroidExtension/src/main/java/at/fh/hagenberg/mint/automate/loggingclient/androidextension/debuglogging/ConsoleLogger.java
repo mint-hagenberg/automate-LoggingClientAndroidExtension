@@ -29,55 +29,80 @@ import at.fhhagenberg.mint.automate.loggingclient.javacore.debuglogging.formatte
 /**
  * Logger that outputs to the Android console.
  */
+@SuppressWarnings("unused")
 public class ConsoleLogger extends BasicLogger {
-	public ConsoleLogger() {
-		this(null, new AndroidFormatter());
-	}
+    /**
+     * Constructor.
+     */
+    public ConsoleLogger() {
+        this(null, new AndroidFormatter());
+    }
 
-	public ConsoleLogger(LogFilter filter) {
-		this(filter, new AndroidFormatter());
-	}
+    /**
+     * Constructor with a filter.
+     *
+     * @param filter -
+     */
+    public ConsoleLogger(LogFilter filter) {
+        this(filter, new AndroidFormatter());
+    }
 
-	public ConsoleLogger(LogFilter filter, LogFormatter formatter) {
-		super(filter, formatter);
-	}
+    /**
+     * Constructor with filter and formatter.
+     *
+     * @param filter    -
+     * @param formatter -
+     */
+    public ConsoleLogger(LogFilter filter, LogFormatter formatter) {
+        super(filter, formatter);
+    }
 
-	@Override
-	public void doLogMessage(DebugLogManager.Priority priority, String source, String message) {
-		//noinspection WrongConstant
-		Log.println(getFormatter().formatPriority(priority), source, message);
-	}
+    @Override
+    public void doLogMessage(DebugLogManager.Priority priority, String source, String message) {
+        //noinspection WrongConstant
+        Log.println(getFormatter().formatPriority(priority), source, message);
+    }
 
-	@Override
-	public void doStart(DebugLogManager instance) {
-		printHeader(instance);
-	}
+    @Override
+    public void doStart(DebugLogManager instance) {
+        printHeader(instance);
+    }
 
-	@Override
-	public void doStop(DebugLogManager instance) {
-		printFooter(instance);
-	}
+    @Override
+    public void doStop(DebugLogManager instance) {
+        printFooter(instance);
+    }
 
-	private void printHeader(DebugLogManager instance) {
-		Log.i("ConsoleLogger", "Logger started (" + new Date() + ")");
+    /**
+     * Print the header for the given log manager.
+     *
+     * @param instance -
+     */
+    private void printHeader(DebugLogManager instance) {
+        Log.i("ConsoleLogger", "Logger started (" + new Date() + ")");
 
-		Log.i("ConsoleLogger", "Framework Kernel V" + instance.getKernel().getVersion() + " running on "
-				+ android.os.Build.VERSION.CODENAME + ", V" + android.os.Build.VERSION.RELEASE + " ("
-				+ android.os.Build.VERSION.SDK_INT + ")");
-		Log.i("ConsoleLogger", "-------------------------------------------------------------------------------");
-	}
+        Log.i("ConsoleLogger", "Framework Kernel V" + instance.getKernel().getVersion() + " running on "
+                + android.os.Build.VERSION.CODENAME + ", V" + android.os.Build.VERSION.RELEASE + " ("
+                + android.os.Build.VERSION.SDK_INT + ")");
+        Log.i("ConsoleLogger", "-------------------------------------------------------------------------------");
+    }
 
-	private void printFooter(DebugLogManager instance) {
-		Log.i("ConsoleLogger", "Logger stopped (" + new Date() + ")");
-	}
+    /**
+     * Print the footer for the given log manager.
+     *
+     * @param instance -
+     */
+    private void printFooter(DebugLogManager instance) {
+        Log.i("ConsoleLogger", "Logger stopped (" + new Date() + ")");
+    }
 
-	@Override
-	public void doLogMessage(DebugLogManager.Priority priority, String source, Throwable throwable) {
-		doLogMessage(priority, source, throwable.getMessage());
-	}
+    @Override
+    public void doLogMessage(DebugLogManager.Priority priority, String source, Throwable throwable) {
+        doLogMessage(priority, source, throwable.getMessage());
+    }
 
-	@Override
-	public void doLogMessage(DebugLogManager.Priority priority, String source, Object message) {
-		doLogMessage(priority, source, message.toString());
-	}
+    @Override
+    public void doLogMessage(DebugLogManager.Priority priority, String source, Object message) {
+        doLogMessage(priority, source, message.toString());
+    }
 }

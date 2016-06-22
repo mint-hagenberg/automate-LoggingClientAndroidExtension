@@ -25,6 +25,7 @@ import at.fhhagenberg.mint.automate.loggingclient.javacore.kernel.KernelBase;
 /**
  * Action to request from the current file export manager to prepare an export file and then open the intent to share the created file via the default android share intent.
  */
+@SuppressWarnings("unused")
 public class RequestFileExportIntentAction implements Action {
     @Override
     public void execute() {

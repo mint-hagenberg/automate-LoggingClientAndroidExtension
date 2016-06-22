@@ -23,9 +23,16 @@ import at.fhhagenberg.mint.automate.loggingclient.javacore.name.Id;
 /**
  * The file export requested, which will be handled by the file exporter.
  */
+@SuppressWarnings("unused")
 public class FileExportRequestedEvent extends SimpleEvent {
+    /**
+     * Event id type.
+     */
     private static final Id ID = new Id(FileExportRequestedEvent.class);
 
+    /**
+     * Constructor.
+     */
     public FileExportRequestedEvent() {
         super(ID);
     }

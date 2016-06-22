@@ -17,6 +17,7 @@
 
 package at.fh.hagenberg.mint.automate.loggingclient.androidextension.debuglogging;
 
+import android.annotation.SuppressLint;
 import android.os.Environment;
 
 import java.io.BufferedWriter;
@@ -36,128 +37,169 @@ import at.fhhagenberg.mint.automate.loggingclient.javacore.debuglogging.formatte
 /**
  * Android logger for file debug logging.
  */
+@SuppressWarnings("unused")
 public class FileLogger extends BasicLogger {
-	private final String mFilename;
+    private static final String LOG_FILENAME = "automate.log";
 
-	public FileLogger() {
-		this("automate", null, new StandardFormatter());
-	}
+    /**
+     * Name of the file to log into.
+     */
+    private final String mFilename;
 
-	public FileLogger(String filename, LogFilter filter) {
-		this(filename, filter, new StandardFormatter());
-	}
+    /**
+     * Constructor.
+     */
+    public FileLogger() {
+        this("automate", null, new StandardFormatter());
+    }
 
-	public FileLogger(String filename, LogFilter filter, LogFormatter formatter) {
-		super(filter, formatter);
+    /**
+     * Constructor with filename and filter.
+     *
+     * @param filename -
+     * @param filter   -
+     */
+    public FileLogger(String filename, LogFilter filter) {
+        this(filename, filter, new StandardFormatter());
+    }
 
-		Format date = new SimpleDateFormat("yyyy-MM-dd_hh-mm-ss");
-		mFilename = filename + "_" + date.format(new Date()) + ".log";
-	}
+    /**
+     * Constructor with filename, filter and formatter.
+     *
+     * @param filename  -
+     * @param filter    -
+     * @param formatter -
+     */
+    public FileLogger(String filename, LogFilter filter, LogFormatter formatter) {
+        super(filter, formatter);
 
-	public FileLogger(LogFilter filter, LogFormatter formatter) {
-		this("automate", filter, formatter);
-	}
+        @SuppressLint("SimpleDateFormat") Format date = new SimpleDateFormat("yyyy-MM-dd_hh-mm-ss");
+        mFilename = filename + "_" + date.format(new Date()) + ".log";
+    }
 
-	public FileLogger(LogFilter filter) {
-		this("automate", filter, new StandardFormatter());
-	}
+    /**
+     * Constructor with filter and formatter
+     *
+     * @param filter    -
+     * @param formatter -
+     */
+    public FileLogger(LogFilter filter, LogFormatter formatter) {
+        this("automate", filter, formatter);
+    }
 
-	@Override
-	public void doLogMessage(DebugLogManager.Priority priority, String source, String message) {
+    /**
+     * Constructor with filter.
+     *
+     * @param filter -
+     */
+    public FileLogger(LogFilter filter) {
+        this("automate", filter, new StandardFormatter());
+    }
 
-		File logFile = new File(Environment.getExternalStorageDirectory() + "/" + mFilename);
-		if (!logFile.exists()) {
-			try {
-				logFile.createNewFile();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
-		try {
-			// BufferedWriter for performance, true to set append to file flag
-			BufferedWriter buf = new BufferedWriter(new FileWriter(logFile, true));
-			buf.append(getFormatter().format(priority, source, message, new Date()));
-			buf.newLine();
-			buf.flush();
-			buf.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
+    @Override
+    public void doLogMessage(DebugLogManager.Priority priority, String source, String message) {
+        File logFile = new File(Environment.getExternalStorageDirectory() + "/" + mFilename);
+        if (!logFile.exists()) {
+            try {
+                logFile.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        try {
+            // BufferedWriter for performance, true to set append to file flag
+            BufferedWriter buf = new BufferedWriter(new FileWriter(logFile, true));
+            buf.append(getFormatter().format(priority, source, message, new Date()));
+            buf.newLine();
+            buf.flush();
+            buf.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-	@Override
-	public void doStart(DebugLogManager instance) {
-		printHeader(instance);
-	}
+    @Override
+    public void doStart(DebugLogManager instance) {
+        printHeader(instance);
+    }
 
-	@Override
-	public void doStop(DebugLogManager instance) {
-		printFooter(instance);
-	}
+    @Override
+    public void doStop(DebugLogManager instance) {
+        printFooter(instance);
+    }
 
-	private void printHeader(DebugLogManager instance) {
+    /**
+     * Print the header for the given log manager.
+     *
+     * @param instance -
+     */
+    private void printHeader(DebugLogManager instance) {
+        File logFile = new File(Environment.getExternalStorageDirectory().toString() + "/" + LOG_FILENAME);
+        if (!logFile.exists()) {
+            try {
+                logFile.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
 
-		File logFile = new File(Environment.getExternalStorageDirectory().toString() + "/automate.log");
-		if (!logFile.exists()) {
-			try {
-				logFile.createNewFile();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
+        try {
+            // BufferedWriter for performance, true to set append to file flag
+            BufferedWriter buf = new BufferedWriter(new FileWriter(logFile, true));
+            buf.append("Logger started (" + new Date() + ")");
+            buf.newLine();
+            buf.append("Framework Kernel V" + instance.getKernel().getVersion() + " running on "
+                    + android.os.Build.VERSION.CODENAME + ", V" + android.os.Build.VERSION.RELEASE + " ("
+                    + android.os.Build.VERSION.SDK_INT + ")");
+            buf.newLine();
+            buf.append("-------------------------------------------------------------------------------");
+            buf.newLine();
+            buf.flush();
 
-		try {
-			// BufferedWriter for performance, true to set append to file flag
-			BufferedWriter buf = new BufferedWriter(new FileWriter(logFile, true));
-			buf.append("Logger started (" + new Date() + ")");
-			buf.newLine();
-			buf.append("Framework Kernel V" + instance.getKernel().getVersion() + " running on "
-					+ android.os.Build.VERSION.CODENAME + ", V" + android.os.Build.VERSION.RELEASE + " ("
-					+ android.os.Build.VERSION.SDK_INT + ")");
-			buf.newLine();
-			buf.append("-------------------------------------------------------------------------------");
-			buf.newLine();
-			buf.flush();
+            buf.close();
 
-			buf.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
+    /**
+     * Print the footer for the given log manager.
+     *
+     * @param instance -
+     */
+    private void printFooter(DebugLogManager instance) {
+        File logFile = new File(Environment.getExternalStorageDirectory().toString() + "/" + LOG_FILENAME);
+        if (!logFile.exists()) {
+            try {
+                logFile.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
 
-	private void printFooter(DebugLogManager instance) {
-		File logFile = new File(Environment.getExternalStorageDirectory().toString() + "/automate.log");
-		if (!logFile.exists()) {
-			try {
-				logFile.createNewFile();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-		}
+        try {
+            // BufferedWriter for performance, true to set append to file flag
+            BufferedWriter buf = new BufferedWriter(new FileWriter(logFile, true));
+            buf.append("Logger stopped (" + new Date() + ")");
+            buf.newLine();
+            buf.newLine();
+            buf.flush();
 
-		try {
-			// BufferedWriter for performance, true to set append to file flag
-			BufferedWriter buf = new BufferedWriter(new FileWriter(logFile, true));
-			buf.append("Logger stopped (" + new Date() + ")");
-			buf.newLine();
-			buf.newLine();
-			buf.flush();
+            buf.close();
 
-			buf.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
 
-		} catch (IOException e) {
-			e.printStackTrace();
-		}
-	}
+    @Override
+    public void doLogMessage(DebugLogManager.Priority priority, String source, Throwable throwable) {
+        doLogMessage(priority, source, throwable.getMessage());
+    }
 
-	@Override
-	public void doLogMessage(DebugLogManager.Priority priority, String source, Throwable throwable) {
-		doLogMessage(priority, source, throwable.getMessage());
-	}
-
-	@Override
-	public void doLogMessage(DebugLogManager.Priority priority, String source, Object message) {
-		doLogMessage(priority, source, message.toString());
-	}
+    @Override
+    public void doLogMessage(DebugLogManager.Priority priority, String source, Object message) {
+        doLogMessage(priority, source, message.toString());
+    }
 }

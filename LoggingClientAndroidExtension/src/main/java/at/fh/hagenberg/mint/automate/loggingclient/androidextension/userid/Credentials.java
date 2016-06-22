@@ -23,9 +23,18 @@ import at.fhhagenberg.mint.automate.loggingclient.javacore.kernel.Kernel;
 /**
  * Helper class to set the user id.
  */
+@SuppressWarnings("unused")
 public final class Credentials {
+    /**
+     * The associated kernel.
+     */
     private static Kernel sKernel;
 
+    /**
+     * Setup the credentials with a kernel.
+     *
+     * @param kernel -
+     */
     protected static void setup(Kernel kernel) {
         sKernel = kernel;
     }

@@ -38,19 +38,36 @@ import at.fhhagenberg.mint.automate.loggingclient.javacore.name.Id;
  * Manager that generates a random session id for every (kernel) restart and has the possibility to store a user id.
  */
 public class CredentialManager extends AbstractManager {
+    /**
+     * Manager ID type.
+     */
     public static final Id ID = new Id(CredentialManager.class);
 
-    private static final String UID_KEY = "user-id";
-    private static final String CRED_FILENAME = "AutomateCredentials";
+    /**
+     * Credentials filename.
+     */
+    private static final String FILENAME_CREDENTIALS = "AutomateCredentials";
 
+    /**
+     * Properties file key to get/store the user id.
+     */
+    private static final String PROPERTY_KEY_USERID = "user-id";
+
+    /**
+     * The current user id.
+     */
     private String mUserId;
+    /**
+     * The current session it.
+     */
     private UUID mSessionId;
 
+    @Override
     protected void doStart() throws ManagerException {
         super.doStart();
 
         Properties props = new Properties();
-        File credentialFile = new File(Environment.getExternalStorageDirectory(), CRED_FILENAME);
+        File credentialFile = new File(Environment.getExternalStorageDirectory(), FILENAME_CREDENTIALS);
         if (credentialFile.exists()) {
             try {
                 FileInputStream fis = new FileInputStream(credentialFile);
@@ -60,7 +77,7 @@ public class CredentialManager extends AbstractManager {
                 e.printStackTrace();
             }
         }
-        String temp = props.getProperty(UID_KEY, null);
+        String temp = props.getProperty(PROPERTY_KEY_USERID, null);
 
         if (temp != null) {
             mUserId = temp;
@@ -95,8 +112,8 @@ public class CredentialManager extends AbstractManager {
         mUserId = userId;
 
         Properties props = new Properties();
-        props.put(UID_KEY, userId);
-        File credentialFile = new File(Environment.getExternalStorageDirectory(), CRED_FILENAME);
+        props.put(PROPERTY_KEY_USERID, userId);
+        File credentialFile = new File(Environment.getExternalStorageDirectory(), FILENAME_CREDENTIALS);
         try {
             if (!credentialFile.exists()) {
                 credentialFile.createNewFile();
