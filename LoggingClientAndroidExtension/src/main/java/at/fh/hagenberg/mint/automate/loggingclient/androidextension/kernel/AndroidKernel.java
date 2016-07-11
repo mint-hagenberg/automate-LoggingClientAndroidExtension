@@ -45,6 +45,7 @@ public class AndroidKernel extends Kernel {
         mContext = context.getApplicationContext();
     }
 
+    @Override
     protected void storeDisabledManagers() {
         SharedPreferences preferences = getSharedPreferences();
         Set<String> disabled = new HashSet<>();
@@ -54,6 +55,7 @@ public class AndroidKernel extends Kernel {
         preferences.edit().putStringSet(PREFERENCE_KEY_DISABLED_MANAGERS, disabled).apply();
     }
 
+    @Override
     protected void restoreDisabledManagers() {
         SharedPreferences preferences = getSharedPreferences();
         Set<String> disabled = preferences.getStringSet(PREFERENCE_KEY_DISABLED_MANAGERS, null);
