@@ -20,9 +20,13 @@ package at.fh.hagenberg.mint.automate.loggingclient.androidextension.fileexport;
 import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageInfo;
+import android.net.Uri;
 import android.os.AsyncTask;
+import android.support.v4.app.NotificationCompat;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -61,346 +65,356 @@ import at.fhhagenberg.mint.automate.loggingclient.javacore.name.Id;
  * A manager that uses handlers to save data to files, based on the transmission events also used in the network manager.
  */
 public abstract class FileExportManager extends AbstractManager implements EventListener, KernelListener {
-    public static final Id FILE_EXPORT_REQUESTED_EVENT = new Id("FILE_EXPORT_REQUESTED_EVENT");
+	public static final Id FILE_EXPORT_REQUESTED_EVENT = new Id("FILE_EXPORT_REQUESTED_EVENT");
 
-    private static final int NOTIFICATION_EXPORT_ZIP = 9000;
+	private static final int NOTIFICATION_EXPORT_ZIP = 9000;
 
-    private static final int ZIP_OUTPUT_BUFFER_SIZE = 1024;
+	private static final int ZIP_OUTPUT_BUFFER_SIZE = 1024;
 
-    private static final String EXPORT_DIR_BASE_NAME = "export";
-    @SuppressLint("SimpleDateFormat")
-    private static final SimpleDateFormat DATE_FORMAT_FILE_EXPORT = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
+	private static final String EXPORT_DIR_BASE_NAME = "export";
+	@SuppressLint("SimpleDateFormat")
+	static final SimpleDateFormat DATE_FORMAT_FILE_EXPORT = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
 
-    private final Set<Id> mRegisteredTransmissionEvents = new HashSet<>();
-    private final List<FileExportHandler> mFileExportHandlers = new ArrayList<>();
-    private final Map<Id, FileExportHandler> mTransmissionEventToHandlerMap = new HashMap<>();
+	private final Set<Id> mRegisteredTransmissionEvents = new HashSet<>();
+	private final List<FileExportHandler> mFileExportHandlers = new ArrayList<>();
+	private final Map<Id, FileExportHandler> mTransmissionEventToHandlerMap = new HashMap<>();
 
-    private boolean mStoreFilesExternal = false;
+	private boolean mStoreFilesExternal = false;
 
-    private CredentialManager mCredentialManager;
+	private CredentialManager mCredentialManager;
 
-    protected String mProjectId;
-    protected String mDeviceId;
-    protected UUID mSessionId;
-    protected int mSequenceNr;
-    protected String mAppVersion;
+	protected String mProjectId;
+	protected String mDeviceId;
+	protected UUID mSessionId;
+	protected int mSequenceNr;
+	protected String mAppVersion;
 
-    private Map<Id, FileOutputStream> mOpenFileStreams = new HashMap<>();
+	private Map<Id, FileOutputStream> mOpenFileStreams = new HashMap<>();
 
-    public FileExportManager() {
-        addDependency(EventManager.ID);
-        addDependency(CredentialManager.ID);
-    }
+	public FileExportManager() {
+		addDependency(EventManager.ID);
+		addDependency(CredentialManager.ID);
+	}
 
-    @Override
-    protected void doStart() throws ManagerException {
-        super.doStart();
+	@Override
+	protected void doStart() throws ManagerException {
+		super.doStart();
 
-        getKernel().addListener(this);
+		getKernel().addListener(this);
 
-        Context context = ((AndroidKernel) getKernel()).getContext();
-        mStoreFilesExternal = PropertiesHelper.getProperty(context, "fileexport.storeexternal", Boolean.class, false);
+		Context context = ((AndroidKernel) getKernel()).getContext();
+		mStoreFilesExternal = PropertiesHelper.getProperty(context, "fileexport.storeexternal", Boolean.class, false);
 
-        String serviceHandlerProperty = PropertiesHelper.getProperty(context, "fileexport.handler");
-        String[] serviceHandlers = serviceHandlerProperty != null && !serviceHandlerProperty.isEmpty() ? serviceHandlerProperty.split(",") : null;
-        if (serviceHandlers != null && serviceHandlers.length > 0) {
-            for (String handlerName : serviceHandlers) {
-                try {
-                    Class<?> handlerClass = Class.forName(handlerName);
-                    FileExportHandler handler = (FileExportHandler) handlerClass.newInstance();
-                    mFileExportHandlers.add(handler);
-                    registerTransmissionEvent(handler.getTransmissionEvents());
-                } catch (Exception ex) {
-                    getLogger().logDebug(getLoggingSource(), "Could not register client network handler " + handlerName);
-                    ex.printStackTrace();
-                }
-            }
-        }
-        initTransmissionEvents();
+		String serviceHandlerProperty = PropertiesHelper.getProperty(context, "fileexport.handler");
+		String[] serviceHandlers = serviceHandlerProperty != null && !serviceHandlerProperty.isEmpty() ? serviceHandlerProperty.split(",") : null;
+		if (serviceHandlers != null && serviceHandlers.length > 0) {
+			for (String handlerName : serviceHandlers) {
+				try {
+					Class<?> handlerClass = Class.forName(handlerName);
+					FileExportHandler handler = (FileExportHandler) handlerClass.newInstance();
+					mFileExportHandlers.add(handler);
+					registerTransmissionEvent(handler.getTransmissionEvents());
+				} catch (Exception ex) {
+					getLogger().logDebug(getLoggingSource(), "Could not register client network handler " + handlerName);
+					ex.printStackTrace();
+				}
+			}
+		}
+		initTransmissionEvents();
 
-        new RegisterEventListenerAction(getKernel(), this, FILE_EXPORT_REQUESTED_EVENT).execute();
-        new RegisterEventListenerAction(getKernel(), this, mRegisteredTransmissionEvents.toArray(new Id[0])).execute();
+		new RegisterEventListenerAction(getKernel(), this, FILE_EXPORT_REQUESTED_EVENT).execute();
+		new RegisterEventListenerAction(getKernel(), this, mRegisteredTransmissionEvents.toArray(new Id[0])).execute();
 
-        mCredentialManager = AbstractManager.getInstance(getKernel(), CredentialManager.class);
-        mDeviceId = mCredentialManager.getUserId();
-        mSessionId = mCredentialManager.getSessionId();
-        mProjectId = mCredentialManager.getProjectId();
-        PackageInfo pInfo;
-        try {
-            pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
-            mAppVersion = String.valueOf(pInfo.versionCode);
-        } catch (Exception e) {
-            mAppVersion = "UNDEFINED";
-        }
-        mSequenceNr = 0;
-    }
+		mCredentialManager = AbstractManager.getInstance(getKernel(), CredentialManager.class);
+		mDeviceId = mCredentialManager.getUserId();
+		mSessionId = mCredentialManager.getSessionId();
+		mProjectId = mCredentialManager.getProjectId();
+		PackageInfo pInfo;
+		try {
+			pInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), 0);
+			mAppVersion = String.valueOf(pInfo.versionCode);
+		} catch (Exception e) {
+			mAppVersion = "UNDEFINED";
+		}
+		mSequenceNr = 0;
+	}
 
-    private void registerTransmissionEvent(List<Id> types) {
-        mRegisteredTransmissionEvents.addAll(types);
-    }
+	private void registerTransmissionEvent(List<Id> types) {
+		mRegisteredTransmissionEvents.addAll(types);
+	}
 
-    private void initTransmissionEvents() {
-        for (FileExportHandler handler : mFileExportHandlers) {
-            for (Id event : handler.getTransmissionEvents()) {
-                mTransmissionEventToHandlerMap.put(event, handler);
-            }
-        }
-    }
+	private void initTransmissionEvents() {
+		for (FileExportHandler handler : mFileExportHandlers) {
+			for (Id event : handler.getTransmissionEvents()) {
+				mTransmissionEventToHandlerMap.put(event, handler);
+			}
+		}
+	}
 
-    @Override
-    protected void doStop() {
-        getKernel().removeListener(this);
+	@Override
+	protected void doStop() {
+		getKernel().removeListener(this);
 
-        new UnregisterEventListenerAction(getKernel(), this);
+		new UnregisterEventListenerAction(getKernel(), this);
 
-        super.doStop();
-    }
+		super.doStop();
+	}
 
-    @Override
-    public void handleEvent(Event event) {
-        // Fetch deviceId again, in case it has changed.
-        mDeviceId = mCredentialManager.getUserId();
-        Id eventTypeId = event.getTypeId();
-        getLogger().logWarning(getLoggingSource(), "Handle: " + eventTypeId);
+	@Override
+	public void handleEvent(Event event) {
+		// Fetch deviceId again, in case it has changed.
+		mDeviceId = mCredentialManager.getUserId();
+		Id eventTypeId = event.getTypeId();
+		getLogger().logWarning(getLoggingSource(), "Handle: " + eventTypeId);
 
-        if (event.isOfType(FILE_EXPORT_REQUESTED_EVENT)) {
-            startFileExport();
-        } else if (mRegisteredTransmissionEvents.contains(eventTypeId)) {
-            FileExportHandler exportHandler = mTransmissionEventToHandlerMap.get(eventTypeId);
-            if (!mOpenFileStreams.containsKey(eventTypeId)) {
-                String filename = exportHandler.getFilename(eventTypeId);
-                try {
-                    Context context = ((AndroidKernel) getKernel()).getContext();
-                    FileOutputStream outputStream;
-                    boolean fileCreated = false;
-                    if (mStoreFilesExternal) {
-                        File filesDir = new File(context.getExternalFilesDir(null), EXPORT_DIR_BASE_NAME);
-                        if (!filesDir.exists()) {
-                            filesDir.mkdirs();
-                        }
-                        File file = new File(filesDir, filename);
-                        if (!file.exists() && file.createNewFile()) {
-                            fileCreated = true;
-                        }
-                        getLogger().logDebug(getLoggingSource(), "writing to external " + file);
-                        outputStream = new FileOutputStream(file, true);
-                    } else {
-                        getLogger().logDebug(getLoggingSource(), "writing to internal " + filename);
-                        File file = new File(context.getFilesDir(), filename);
-                        if (!file.exists()) {
-                            fileCreated = true;
-                        }
-                        outputStream = context.openFileOutput(filename, Context.MODE_APPEND);
-                    }
-                    if (fileCreated) {
-                        writeHeaderToFile(outputStream, exportHandler.getFileHeader(eventTypeId));
-                    }
-                    mOpenFileStreams.put(eventTypeId, outputStream);
-                } catch (Exception ex) {
-                    getLogger().logCritical(getLoggingSource(), ex);
-                }
-            }
-            FileOutputStream outputStream = mOpenFileStreams.get(eventTypeId);
-            if (outputStream != null) {
-                try {
-                    writeToFile(outputStream, exportHandler.serialize(event));
-                } catch (IOException ex) {
-                    getLogger().logCritical(getLoggingSource(), ex);
-                    // TODO: we probably need some kind of cache here…
-                }
-            } else {
-                getLogger().logError(getLoggingSource(), "The output stream for " + eventTypeId + " is null");
-                // TODO: we probably need some kind of cache here…
-            }
-            ++mSequenceNr;
-        }
-    }
+		if (event.isOfType(FILE_EXPORT_REQUESTED_EVENT)) {
+			startFileExport();
+		} else if (mRegisteredTransmissionEvents.contains(eventTypeId)) {
+			FileExportHandler exportHandler = mTransmissionEventToHandlerMap.get(eventTypeId);
+			if (!mOpenFileStreams.containsKey(eventTypeId)) {
+				String filename = exportHandler.getFilename(eventTypeId);
+				try {
+					Context context = ((AndroidKernel) getKernel()).getContext();
+					FileOutputStream outputStream;
+					boolean fileCreated = false;
+					if (mStoreFilesExternal) {
+						File filesDir = new File(context.getExternalFilesDir(null), EXPORT_DIR_BASE_NAME);
+						if (!filesDir.exists()) {
+							filesDir.mkdirs();
+						}
+						File file = new File(filesDir, filename);
+						if (!file.exists() && file.createNewFile()) {
+							fileCreated = true;
+						}
+						getLogger().logDebug(getLoggingSource(), "writing to external " + file);
+						outputStream = new FileOutputStream(file, true);
+					} else {
+						getLogger().logDebug(getLoggingSource(), "writing to internal " + filename);
+						File file = new File(context.getFilesDir(), filename);
+						if (!file.exists()) {
+							fileCreated = true;
+						}
+						outputStream = context.openFileOutput(filename, Context.MODE_APPEND);
+					}
+					if (fileCreated) {
+						writeHeaderToFile(outputStream, exportHandler.getFileHeader(eventTypeId));
+					}
+					mOpenFileStreams.put(eventTypeId, outputStream);
+				} catch (Exception ex) {
+					getLogger().logCritical(getLoggingSource(), ex);
+				}
+			}
+			FileOutputStream outputStream = mOpenFileStreams.get(eventTypeId);
+			if (outputStream != null) {
+				try {
+					writeToFile(outputStream, exportHandler.serialize(event));
+				} catch (IOException ex) {
+					getLogger().logCritical(getLoggingSource(), ex);
+					// TODO: we probably need some kind of cache here…
+				}
+			} else {
+				getLogger().logError(getLoggingSource(), "The output stream for " + eventTypeId + " is null");
+				// TODO: we probably need some kind of cache here…
+			}
+			++mSequenceNr;
+		}
+	}
 
-    private File getExportFile(Context context, String filename) {
-        return getExportFile(context, filename, null);
-    }
+	private File getExportFile(Context context, String filename) {
+		return getExportFile(context, filename, null);
+	}
 
-    private File getExportFile(Context context, String filename, Date date) {
-        File parent = getExportParentDir(context, date);
-        return new File(parent, filename);
-    }
+	private File getExportFile(Context context, String filename, Date date) {
+		File parent = getExportParentDir(context, date);
+		return new File(parent, filename);
+	}
 
-    private File getExportParentDir(Context context, Date date) {
-        File parent;
-        if (mStoreFilesExternal) {
-            parent = context.getExternalFilesDir(null);
-        } else {
-            parent = context.getFilesDir();
-        }
-        parent = new File(parent, File.separator + EXPORT_DIR_BASE_NAME);
-        if (date != null) {
-            String nowFormattedDate = DATE_FORMAT_FILE_EXPORT.format(date);
-            parent = new File(parent, File.separator + nowFormattedDate);
-        }
-        return parent;
-    }
+	private File getExportParentDir(Context context, Date date) {
+		File parent;
+		if (mStoreFilesExternal) {
+			parent = context.getExternalFilesDir(null);
+		} else {
+			parent = context.getFilesDir();
+		}
+		parent = new File(parent, File.separator + EXPORT_DIR_BASE_NAME);
+		if (date != null) {
+			String nowFormattedDate = DATE_FORMAT_FILE_EXPORT.format(date);
+			parent = new File(parent, File.separator + nowFormattedDate);
+		}
+		return parent;
+	}
 
-    private void startFileExport() {
-        new AsyncTask<Void, Integer, Boolean>() {
-            private List<String> mFilenames;
+	private void startFileExport() {
+		new AsyncTask<Void, Integer, Date>() {
+			private List<String> mFilenames;
 
-            @Override
-            protected void onPreExecute() {
-                mFilenames = new ArrayList<>();
-                for (FileExportHandler handler : mFileExportHandlers) {
-                    mFilenames.addAll(handler.getAllFilenames());
-                }
-                getLogger().logDebug(getLoggingSource(), "Starting ZIP file export. " + mFilenames.size() + " files to export");
-                showExportNotification();
-            }
+			@Override
+			protected void onPreExecute() {
+				mFilenames = new ArrayList<>();
+				for (FileExportHandler handler : mFileExportHandlers) {
+					mFilenames.addAll(handler.getAllFilenames());
+				}
+				getLogger().logDebug(getLoggingSource(), "Starting ZIP file export. " + mFilenames.size() + " files to export");
+				showExportNotification();
+			}
 
-            @Override
-            protected Boolean doInBackground(Void... params) {
-                Context context = ((AndroidKernel) getKernel()).getContext();
-                ZipOutputStream zos = null;
-                try {
-                    Date now = Calendar.getInstance().getTime();
+			@Override
+			protected Date doInBackground(Void... params) {
+				Context context = ((AndroidKernel) getKernel()).getContext();
+				Date now = Calendar.getInstance().getTime();
+				ZipOutputStream zos = null;
+				try {
+					FileInputStream fis;
+					List<FileOutputStream> openStreams = new ArrayList<>(mOpenFileStreams.values());
+					mOpenFileStreams.clear();
+					for (OutputStream stream : openStreams) {
+						try {
+							stream.close();
+						} catch (IOException ex) {
+							// Ignore
+						}
+					}
+					List<File> filesToInclude = new ArrayList<>();
+					File parent = getExportParentDir(context, now);
+					if (!parent.exists()) {
+						parent.mkdirs();
+					}
+					for (String filename : mFilenames) {
+						File file = getExportFile(context, filename);
+						if (!file.exists()) {
+							continue;
+						}
+						File newName = getExportFile(context, filename, now);
+						boolean success = file.renameTo(newName);
+						filesToInclude.add(success ? newName : file);
+					}
 
-                    FileInputStream fis;
-                    List<FileOutputStream> openStreams = new ArrayList<>(mOpenFileStreams.values());
-                    mOpenFileStreams.clear();
-                    for (OutputStream stream : openStreams) {
-                        try {
-                            stream.close();
-                        } catch (IOException ex) {
-                            // Ignore
-                        }
-                    }
-                    List<File> filesToInclude = new ArrayList<>();
-                    File parent = getExportParentDir(context, now);
-                    if (!parent.exists()) {
-                        parent.mkdirs();
-                    }
-                    for (String filename : mFilenames) {
-                        File file = getExportFile(context, filename);
-                        if (!file.exists()) {
-                            continue;
-                        }
-                        File newName = getExportFile(context, filename, now);
-                        boolean success = file.renameTo(newName);
-                        filesToInclude.add(success ? newName : file);
-                    }
 
+					File zipFile = new File(context.getExternalFilesDir(null), "export-" + DATE_FORMAT_FILE_EXPORT.format(now) + ".zip");
+					if (!zipFile.exists()) {
+						zipFile.createNewFile();
+					}
+					OutputStream os = new FileOutputStream(zipFile);
+					zos = new ZipOutputStream(new BufferedOutputStream(os));
 
-                    File zipFile = new File(context.getExternalFilesDir(null), "export-" + DATE_FORMAT_FILE_EXPORT.format(now) + ".zip");
-                    if (!zipFile.exists()) {
-                        zipFile.createNewFile();
-                    }
-                    OutputStream os = new FileOutputStream(zipFile);
-                    zos = new ZipOutputStream(new BufferedOutputStream(os));
+					byte[] dataBlock = new byte[ZIP_OUTPUT_BUFFER_SIZE];
+					ZipEntry entry;
+					for (File file : filesToInclude) {
+						if (!file.exists()) {
+							continue;
+						}
+						fis = new FileInputStream(file);
 
-                    byte[] dataBlock = new byte[ZIP_OUTPUT_BUFFER_SIZE];
-                    ZipEntry entry;
-                    for (File file : filesToInclude) {
-                        if (!file.exists()) {
-                            continue;
-                        }
-                        fis = new FileInputStream(file);
+						entry = new ZipEntry(file.getName());
+						zos.putNextEntry(entry);
+						writeFileToZip(fis, zos, dataBlock);
+						fis.close();
+						zos.closeEntry();
+					}
+					parent.delete();
+				} catch (IOException ex) {
+					getLogger().logCritical(getLoggingSource(), ex);
+					return null;
+				} finally {
+					if (zos != null) {
+						try {
+							zos.close();
+						} catch (IOException e) {
+							// Ignore
+						}
+					}
+				}
 
-                        entry = new ZipEntry(file.getName());
-                        zos.putNextEntry(entry);
-                        writeFileToZip(fis, zos, dataBlock);
-                        fis.close();
-                        zos.closeEntry();
-                    }
-                    parent.delete();
-                } catch (IOException ex) {
-                    getLogger().logCritical(getLoggingSource(), ex);
-                    return false;
-                } finally {
-                    if (zos != null) {
-                        try {
-                            zos.close();
-                        } catch (IOException e) {
-                            // Ignore
-                        }
-                    }
-                }
+				return now;
+			}
 
-                return true;
-            }
+			@Override
+			protected void onPostExecute(Date result) {
+				getLogger().logDebug(getLoggingSource(), "ZIP file export DONE: " + result);
+				if (result != null) {
+					showExportDoneNotification(result);
+				} else {
+					showExportErrorNotification();
+				}
+			}
+		}.execute();
+	}
 
-            @Override
-            protected void onPostExecute(Boolean result) {
-                getLogger().logDebug(getLoggingSource(), "ZIP file export DONE: " + result);
-                if (result) {
-                    showExportDoneNotification();
-                } else {
-                    showExportErrorNotification();
-                }
-            }
-        }.execute();
-    }
+	private void showExportNotification() {
+		Context context = ((AndroidKernel) getKernel()).getContext();
+		Notification notification = new Notification.Builder(context)
+				.setContentTitle(context.getString(R.string.notification_title_export_progress))
+				.setSmallIcon(R.drawable.ic_notification_file_export)
+				.setOngoing(true)
+				.setProgress(0, 0, true)
+				.build();
+		NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+		notificationManager.notify(NOTIFICATION_EXPORT_ZIP, notification);
+	}
 
-    private void showExportNotification() {
-        Context context = ((AndroidKernel) getKernel()).getContext();
-        Notification notification = new Notification.Builder(context)
-                .setContentTitle("Exporting automate data")
-                .setSmallIcon(R.drawable.ic_notification_file_export)
-                .setOngoing(true)
-                .setProgress(0, 0, true)
-                .build();
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.notify(NOTIFICATION_EXPORT_ZIP, notification);
-    }
+	private void showExportDoneNotification(Date fileTime) {
+		Context context = ((AndroidKernel) getKernel()).getContext();
 
-    private void showExportDoneNotification() {
-        // TODO: add intent to send/share file
-        Context context = ((AndroidKernel) getKernel()).getContext();
-        Notification notification = new Notification.Builder(context)
-                .setContentTitle("Export automate data done")
-                .setSmallIcon(R.drawable.ic_notification_file_export)
-                .setAutoCancel(true)
-                .build();
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.notify(NOTIFICATION_EXPORT_ZIP, notification);
-    }
+		Intent shareIntent = new Intent(Intent.ACTION_SEND);
+		String fileFormattedTime = FileExportManager.DATE_FORMAT_FILE_EXPORT.format(fileTime);
+		File zipFile = new File(context.getExternalFilesDir(null), "export-" + fileFormattedTime + ".zip");
+		shareIntent.setType("application/zip");
+		shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse("file://" + zipFile.getAbsolutePath()));
+		shareIntent.putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.share_title_zip));
+		shareIntent.putExtra(Intent.EXTRA_TEXT, context.getString(R.string.share_text_zip));
+		PendingIntent sharePendingIntent = PendingIntent.getActivity(context, 0, Intent.createChooser(shareIntent, context.getString(R.string.share_title_zip)), PendingIntent.FLAG_UPDATE_CURRENT);
 
-    private void showExportErrorNotification() {
-        Context context = ((AndroidKernel) getKernel()).getContext();
-        Notification notification = new Notification.Builder(context)
-                .setContentTitle("Error exporting automate data")
-                .setSmallIcon(R.drawable.ic_notification_file_export)
-                .setAutoCancel(true)
-                .build();
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        notificationManager.notify(NOTIFICATION_EXPORT_ZIP, notification);
-    }
+		Notification notification = new NotificationCompat.Builder(context)
+				.setContentTitle(context.getString(R.string.notification_title_export_done))
+				.setContentText(context.getString(R.string.notification_text_export_done, fileFormattedTime))
+				.setSmallIcon(R.drawable.ic_notification_file_export)
+				.setAutoCancel(false)
+				.setContentIntent(sharePendingIntent)
+				.build();
+		NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+		notificationManager.notify(NOTIFICATION_EXPORT_ZIP, notification);
+	}
 
-    private void writeFileToZip(FileInputStream inputStream, ZipOutputStream outputStream, byte[] dataBlock) throws IOException {
-        int count = inputStream.read(dataBlock, 0, ZIP_OUTPUT_BUFFER_SIZE);
-        while (count != -1) {
-            outputStream.write(dataBlock, 0, count);
-            count = inputStream.read(dataBlock, 0, ZIP_OUTPUT_BUFFER_SIZE);
-        }
-    }
+	private void showExportErrorNotification() {
+		Context context = ((AndroidKernel) getKernel()).getContext();
+		Notification notification = new NotificationCompat.Builder(context)
+				.setContentTitle(context.getString(R.string.notification_title_export_error))
+				.setSmallIcon(R.drawable.ic_notification_file_export)
+				.setAutoCancel(true)
+				.build();
+		NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+		notificationManager.notify(NOTIFICATION_EXPORT_ZIP, notification);
+	}
 
-    protected abstract void writeHeaderToFile(FileOutputStream stream, String[] headers) throws IOException;
+	private void writeFileToZip(FileInputStream inputStream, ZipOutputStream outputStream, byte[] dataBlock) throws IOException {
+		int count = inputStream.read(dataBlock, 0, ZIP_OUTPUT_BUFFER_SIZE);
+		while (count != -1) {
+			outputStream.write(dataBlock, 0, count);
+			count = inputStream.read(dataBlock, 0, ZIP_OUTPUT_BUFFER_SIZE);
+		}
+	}
 
-    protected abstract void writeToFile(FileOutputStream stream, Object[] objects) throws IOException;
+	protected abstract void writeHeaderToFile(FileOutputStream stream, String[] headers) throws IOException;
 
-    @Override
-    public void startupFinished() {
-    }
+	protected abstract void writeToFile(FileOutputStream stream, Object[] objects) throws IOException;
 
-    @Override
-    public void onPrepareShutdown() {
-    }
+	@Override
+	public void startupFinished() {
+	}
 
-    @Override
-    public void onShutdown() {
-        for (FileOutputStream outputStream : mOpenFileStreams.values()) {
-            try {
-                outputStream.close();
-            } catch (IOException e) {
-                // Ignore
-            }
-        }
-        mOpenFileStreams.clear();
-    }
+	@Override
+	public void onPrepareShutdown() {
+	}
+
+	@Override
+	public void onShutdown() {
+		for (FileOutputStream outputStream : mOpenFileStreams.values()) {
+			try {
+				outputStream.close();
+			} catch (IOException e) {
+				// Ignore
+			}
+		}
+		mOpenFileStreams.clear();
+	}
 }

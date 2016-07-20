@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  ~     Copyright (C) 2016 Research Group Mobile Interactive Systems
+  ~     Email: mint@fh-hagenberg.at, Website: http://mint.fh-hagenberg.at
+  ~
+  ~     This program is free software: you can redistribute it and/or modify
+  ~     it under the terms of the GNU General Public License as published by
+  ~     the Free Software Foundation, either version 3 of the License, or
+  ~     (at your option) any later version.
+  ~
+  ~     This program is distributed in the hope that it will be useful,
+  ~     but WITHOUT ANY WARRANTY; without even the implied warranty of
+  ~     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+  ~     GNU General Public License for more details.
+  ~
+  ~     You should have received a copy of the GNU General Public License
+  ~     along with this program.  If not, see <http://www.gnu.org/licenses/>.
+  -->
+
+<resources>
+    <string name="export_notification_action_share">Share</string>
+    <string name="share_title_zip">Sharing file…</string>
+    <string name="share_text_zip">Sharing file…</string>
+    <string name="share_chooser_zip">Share file</string>
+    <string name="notification_title_export_progress">Exporting automate data</string>
+    <string name="notification_title_export_done">Export automate data done</string>
+    <string name="notification_title_export_error">Error exporting automate data</string>
+    <string name="notification_text_export_done">Click to share the exported data from %1$s!</string>
+</resources>
