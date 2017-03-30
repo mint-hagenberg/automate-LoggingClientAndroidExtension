@@ -354,36 +354,45 @@ public abstract class FileExportManager extends AbstractManager implements Event
 
 	private void showExportDoneNotification(Date fileTime) {
 		Context context = ((AndroidKernel) getKernel()).getContext();
-
-		Intent shareIntent = new Intent(Intent.ACTION_SEND);
-		String fileFormattedTime = FileExportManager.DATE_FORMAT_FILE_EXPORT.format(fileTime);
-		File zipFile = new File(context.getExternalFilesDir(null), "export-" + fileFormattedTime + ".zip");
-		shareIntent.setType("application/zip");
-		shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse("file://" + zipFile.getAbsolutePath()));
-		shareIntent.putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.share_title_zip));
-		shareIntent.putExtra(Intent.EXTRA_TEXT, context.getString(R.string.share_text_zip));
-		PendingIntent sharePendingIntent = PendingIntent.getActivity(context, 0, Intent.createChooser(shareIntent, context.getString(R.string.share_title_zip)), PendingIntent.FLAG_UPDATE_CURRENT);
-
-		Notification notification = new NotificationCompat.Builder(context)
-				.setContentTitle(context.getString(R.string.notification_title_export_done))
-				.setContentText(context.getString(R.string.notification_text_export_done, fileFormattedTime))
-				.setSmallIcon(R.drawable.ic_notification_file_export)
-				.setAutoCancel(false)
-				.setContentIntent(sharePendingIntent)
-				.build();
 		NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-		notificationManager.notify(NOTIFICATION_EXPORT_ZIP, notification);
+
+		if (PropertiesHelper.getProperty(context, "fileexport.shownotifications.exported", Boolean.class, true)) {
+			Intent shareIntent = new Intent(Intent.ACTION_SEND);
+			String fileFormattedTime = FileExportManager.DATE_FORMAT_FILE_EXPORT.format(fileTime);
+			File zipFile = new File(context.getExternalFilesDir(null), "export-" + fileFormattedTime + ".zip");
+			shareIntent.setType("application/zip");
+			shareIntent.putExtra(Intent.EXTRA_STREAM, Uri.parse("file://" + zipFile.getAbsolutePath()));
+			shareIntent.putExtra(Intent.EXTRA_SUBJECT, context.getString(R.string.share_title_zip));
+			shareIntent.putExtra(Intent.EXTRA_TEXT, context.getString(R.string.share_text_zip));
+			PendingIntent sharePendingIntent = PendingIntent.getActivity(context, 0, Intent.createChooser(shareIntent, context.getString(R.string.share_title_zip)), PendingIntent.FLAG_UPDATE_CURRENT);
+
+			Notification notification = new NotificationCompat.Builder(context)
+					.setContentTitle(context.getString(R.string.notification_title_export_done))
+					.setContentText(context.getString(R.string.notification_text_export_done, fileFormattedTime))
+					.setSmallIcon(R.drawable.ic_notification_file_export)
+					.setAutoCancel(false)
+					.setContentIntent(sharePendingIntent)
+					.build();
+			notificationManager.notify(NOTIFICATION_EXPORT_ZIP, notification);
+		} else {
+			notificationManager.cancel(NOTIFICATION_EXPORT_ZIP);
+		}
 	}
 
 	private void showExportErrorNotification() {
 		Context context = ((AndroidKernel) getKernel()).getContext();
-		Notification notification = new NotificationCompat.Builder(context)
-				.setContentTitle(context.getString(R.string.notification_title_export_error))
-				.setSmallIcon(R.drawable.ic_notification_file_export)
-				.setAutoCancel(true)
-				.build();
 		NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-		notificationManager.notify(NOTIFICATION_EXPORT_ZIP, notification);
+
+		if (PropertiesHelper.getProperty(context, "fileexport.shownotifications.exported", Boolean.class, true)) {
+			Notification notification = new NotificationCompat.Builder(context)
+					.setContentTitle(context.getString(R.string.notification_title_export_error))
+					.setSmallIcon(R.drawable.ic_notification_file_export)
+					.setAutoCancel(true)
+					.build();
+			notificationManager.notify(NOTIFICATION_EXPORT_ZIP, notification);
+		} else {
+			notificationManager.cancel(NOTIFICATION_EXPORT_ZIP);
+		}
 	}
 
 	private void writeFileToZip(FileInputStream inputStream, ZipOutputStream outputStream, byte[] dataBlock) throws IOException {
