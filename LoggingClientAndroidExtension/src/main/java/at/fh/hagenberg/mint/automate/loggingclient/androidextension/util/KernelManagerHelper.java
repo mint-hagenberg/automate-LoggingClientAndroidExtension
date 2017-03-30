@@ -28,6 +28,7 @@ import at.fh.hagenberg.mint.automate.loggingclient.androidextension.fileexport.i
 import at.fh.hagenberg.mint.automate.loggingclient.androidextension.kernel.AndroidKernel;
 import at.fh.hagenberg.mint.automate.loggingclient.androidextension.time.TrustedTimeManager;
 import at.fh.hagenberg.mint.automate.loggingclient.androidextension.userid.CredentialManager;
+import at.fh.hagenberg.mint.automate.loggingclient.androidextension.webexport.WebExportManager;
 import at.fhhagenberg.mint.automate.loggingclient.javacore.action.DebugLogAction;
 import at.fhhagenberg.mint.automate.loggingclient.javacore.debuglogging.DebugLogManager;
 import at.fhhagenberg.mint.automate.loggingclient.javacore.debuglogging.filter.OrFilter;
@@ -41,64 +42,69 @@ import at.fhhagenberg.mint.automate.loggingclient.javacore.util.ReflectionHelper
 /**
  * Helper to initialize the kernel and setup all required managers.
  */
+@SuppressWarnings("unused")
 public class KernelManagerHelper {
-    private static final String TAG = KernelManagerHelper.class.getSimpleName();
-    private static final String TAG_STORAGE_OPTIONS = "StorageOptions";
+	private static final String TAG = KernelManagerHelper.class.getSimpleName();
+	private static final String TAG_STORAGE_OPTIONS = "StorageOptions";
 
-    public static Kernel initializeKernel(Context context) throws IOException {
-        Kernel kernel = new AndroidKernel(context);
+	public static Kernel initializeKernel(Context context) throws IOException {
+		Kernel kernel = new AndroidKernel(context);
 
-        kernel.addManager(new DebugLogManager(new ConsoleLogger(new OrFilter(new PriorityFilter(DebugLogManager.Priority.INFO),
-                new PriorityFilter(DebugLogManager.Priority.DEBUG), new PriorityFilter(DebugLogManager.Priority.WARNING), new PriorityFilter(
-                DebugLogManager.Priority.ERROR)))));
+		kernel.addManager(new DebugLogManager(new ConsoleLogger(new OrFilter(new PriorityFilter(DebugLogManager.Priority.INFO),
+				new PriorityFilter(DebugLogManager.Priority.DEBUG), new PriorityFilter(DebugLogManager.Priority.WARNING), new PriorityFilter(
+				DebugLogManager.Priority.ERROR)))));
 
-        kernel.addManager(new CredentialManager());
-        kernel.addManager(new EventManager());
-        boolean fileExportEnabled = PropertiesHelper.getProperty(context, "fileexport.enabled", Boolean.class, false);
-        if (fileExportEnabled) {
-            kernel.addManager(new CSVFileExportManager());
-        }
-        kernel.addManager(new TrustedTimeManager());
+		kernel.addManager(new CredentialManager());
+		kernel.addManager(new EventManager());
+		boolean fileExportEnabled = PropertiesHelper.getProperty(context, "fileexport.enabled", Boolean.class, false);
+		boolean webExportEnabled = PropertiesHelper.getProperty(context, "webexport.enabled", Boolean.class, false);
+		if (webExportEnabled || fileExportEnabled) {
+			kernel.addManager(new CSVFileExportManager());
+		}
+		if (webExportEnabled) {
+			kernel.addManager(new WebExportManager());
+		}
+		kernel.addManager(new TrustedTimeManager());
 
 
-        String[] managerList = null;
-        try {
-            managerList = PropertiesHelper.getProperty(context, "manager", String[].class);
-        } catch (Exception e) {
-        }
-        if (managerList != null) {
-            for (String s : managerList) {
-                if (s == null || s.length() == 0) {
-                    continue;
-                }
+		String[] managerList = null;
+		try {
+			managerList = PropertiesHelper.getProperty(context, "manager", String[].class);
+		} catch (Exception e) {
+		}
+		if (managerList != null) {
+			for (String s : managerList) {
+				if (s == null || s.length() == 0) {
+					continue;
+				}
 
-                try {
-                    Manager manager = ReflectionHelper.instantiateClass(Manager.class, s);
-                    kernel.addManager(manager);
-                } catch (Exception e) {
-                    new DebugLogAction(kernel, DebugLogManager.Priority.ERROR, TAG, "Couldn't add manager " + e.getMessage());
-                }
-            }
-        } else {
-            new DebugLogAction(kernel, DebugLogManager.Priority.ERROR, TAG, "No managers registered!");
-        }
+				try {
+					Manager manager = ReflectionHelper.instantiateClass(Manager.class, s);
+					kernel.addManager(manager);
+				} catch (Exception e) {
+					new DebugLogAction(kernel, DebugLogManager.Priority.ERROR, TAG, "Couldn't add manager " + e.getMessage());
+				}
+			}
+		} else {
+			new DebugLogAction(kernel, DebugLogManager.Priority.ERROR, TAG, "No managers registered!");
+		}
 
-        String key = PropertiesHelper.getProperty(context, "logging.fileLogging");
-        if (key != null && key.equals("true")) {
-            AbstractManager.getInstance(kernel, DebugLogManager.class).addListener(new FileLogger(new PriorityFilter(DebugLogManager.Priority.INFO)));
-        }
+		String key = PropertiesHelper.getProperty(context, "logging.fileLogging");
+		if (key != null && key.equals("true")) {
+			AbstractManager.getInstance(kernel, DebugLogManager.class).addListener(new FileLogger(new PriorityFilter(DebugLogManager.Priority.INFO)));
+		}
 
-        StorageOptions.determineStorageOptions();
+		StorageOptions.determineStorageOptions();
 
-        new DebugLogAction(kernel, DebugLogManager.Priority.INFO, TAG_STORAGE_OPTIONS, "External: " + Environment.getExternalStorageDirectory());
-        for (String s : StorageOptions.sPaths) {
-            new DebugLogAction(kernel, DebugLogManager.Priority.INFO, TAG_STORAGE_OPTIONS, "Path: " + s);
-        }
+		new DebugLogAction(kernel, DebugLogManager.Priority.INFO, TAG_STORAGE_OPTIONS, "External: " + Environment.getExternalStorageDirectory());
+		for (String s : StorageOptions.sPaths) {
+			new DebugLogAction(kernel, DebugLogManager.Priority.INFO, TAG_STORAGE_OPTIONS, "Path: " + s);
+		}
 
-        for (String s : StorageOptions.sLabels) {
-            new DebugLogAction(kernel, DebugLogManager.Priority.INFO, TAG_STORAGE_OPTIONS, "Label:" + s);
-        }
+		for (String s : StorageOptions.sLabels) {
+			new DebugLogAction(kernel, DebugLogManager.Priority.INFO, TAG_STORAGE_OPTIONS, "Label:" + s);
+		}
 
-        return kernel;
-    }
+		return kernel;
+	}
 }

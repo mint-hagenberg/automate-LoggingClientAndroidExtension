@@ -14,8 +14,7 @@
   ~
   ~     You should have received a copy of the GNU Lesser General Public License
   ~     along with this program.  If not, see <http://www.gnu.org/licenses/>.
-  -->
-
+-->
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
           package="at.fh.hagenberg.mint.automate.loggingclient.androidextension">
 
@@ -25,6 +24,19 @@
     <uses-permission android:name="android.permission.INTERNET"/>
 
     <application>
+        <receiver
+            android:name=".webexport.WebExportBroadcastReceiver"
+            android:enabled="true"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="at.fh.hagenberg.mint.automate.fileexport.ACTION_EXPORT_FINISHED"/>
+            </intent-filter>
+        </receiver>
+
+        <service
+            android:name=".webexport.WebExportService"
+            android:exported="false">
+        </service>
     </application>
 
 </manifest>
