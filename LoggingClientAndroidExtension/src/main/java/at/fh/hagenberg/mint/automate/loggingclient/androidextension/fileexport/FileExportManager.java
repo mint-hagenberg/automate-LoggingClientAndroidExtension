@@ -67,13 +67,18 @@ import at.fhhagenberg.mint.automate.loggingclient.javacore.name.Id;
 public abstract class FileExportManager extends AbstractManager implements EventListener, KernelListener {
 	public static final Id FILE_EXPORT_REQUESTED_EVENT = new Id("FILE_EXPORT_REQUESTED_EVENT");
 
+	public static final String ACTION_EXPORT_STARTING = "at.fh.hagenberg.mint.automate.fileexport.ACTION_EXPORT_STARTING";
+	public static final String ACTION_EXPORT_FINISHED = "at.fh.hagenberg.mint.automate.fileexport.ACTION_EXPORT_FINISHED";
+	public static final String EXTRA_TIME = "time";
+	public static final String ACTION_EXPORT_ERROR = "at.fh.hagenberg.mint.automate.fileexport.ACTION_EXPORT_ERROR";
+
 	private static final int NOTIFICATION_EXPORT_ZIP = 9000;
 
 	private static final int ZIP_OUTPUT_BUFFER_SIZE = 1024;
 
 	private static final String EXPORT_DIR_BASE_NAME = "export";
 	@SuppressLint("SimpleDateFormat")
-	static final SimpleDateFormat DATE_FORMAT_FILE_EXPORT = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
+	public static final SimpleDateFormat DATE_FORMAT_FILE_EXPORT = new SimpleDateFormat("yyyy_MM_dd-HH_mm_ss");
 
 	private final Set<Id> mRegisteredTransmissionEvents = new HashSet<>();
 	private final List<FileExportHandler> mFileExportHandlers = new ArrayList<>();
@@ -250,6 +255,9 @@ public abstract class FileExportManager extends AbstractManager implements Event
 
 			@Override
 			protected void onPreExecute() {
+				Context context = ((AndroidKernel) getKernel()).getContext();
+				context.sendBroadcast(new Intent(ACTION_EXPORT_STARTING));
+
 				mFilenames = new ArrayList<>();
 				for (FileExportHandler handler : mFileExportHandlers) {
 					mFilenames.addAll(handler.getAllFilenames());
@@ -331,9 +339,16 @@ public abstract class FileExportManager extends AbstractManager implements Event
 			@Override
 			protected void onPostExecute(Date result) {
 				getLogger().logDebug(getLoggingSource(), "ZIP file export DONE: " + result);
+				Context context = ((AndroidKernel) getKernel()).getContext();
 				if (result != null) {
+					Intent intent = new Intent(ACTION_EXPORT_FINISHED);
+					intent.putExtra(EXTRA_TIME, result.getTime());
+					context.sendBroadcast(intent);
+
 					showExportDoneNotification(result);
 				} else {
+					context.sendBroadcast(new Intent(ACTION_EXPORT_ERROR));
+
 					showExportErrorNotification();
 				}
 			}
